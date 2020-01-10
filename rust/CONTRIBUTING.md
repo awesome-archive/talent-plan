@@ -19,14 +19,13 @@ the Rust course are tagged `p: rust`. The `help wanted` and `good first issue`
 tags may help you find something interesting.
 
 [issue tracker]: https://github.com/pingcap/talent-plan/issues/
-[TiKV Slack]: https://join.slack.com/t/tikv-wg/shared_invite/enQtNTUyODE4ODU2MzI0LTgzZDQ3NzZlNDkzMGIyYjU1MTA0NzIwMjFjODFiZjA0YjFmYmQyOTZiNzNkNzg1N2U1MDdlZTIxNTU5NWNhNjk
+[TiKV Slack]: https://join.slack.com/t/tikv-wg/shared_invite/enQtNTUyODE4ODU2MzI0LWVlMWMzMDkyNWE5ZjY1ODAzMWUwZGVhNGNhYTc3MzJhYWE0Y2FjYjliYzY1OWJlYTc4OWVjZWM1NDkwN2QxNDE
 
+## Developing a new project
 
-## Developing a new section
-
-Each section provides a similar project to previous sections, while expanding
-the scope and building off of learnings from previous sections. Each project
-lends itself to being extended by the next section's project.
+Each project expands the scope of the previous, and builds off of
+learnings from previous projects. Each project lends itself to being extended by
+the next section's project.
 
 When writing a project, look for steps where the design could be specified in
 multiple ways, where there are multiple solutions, where there is deeper
@@ -46,6 +45,10 @@ previous "building blocks" sections.
 
 Project text may include inline links to pages that offer explanatios of terms
 and concepts.
+
+Some subjects are revisited multiple times. In particular it is common for one
+project to introduce a subject with basic tasks, then the subsequent project to
+expand on that same subject with deeper tasks.
 
 
 ## Style notes
@@ -84,9 +87,27 @@ subject matter and be interesting enough to justify the large detour.
 
 Internal hyperlinks are relative to the current directory, not absolute.
 
+For building blocks exercises, if the description spans multiple paragraphs,
+begin the description in a paragraph separate from the exercise name:
+
+```
+- **Exercise: Write a thread pool**.
+
+  A [thread pool] runs jobs (functions) on a set of reusable threads, which can
+  be more efficient than spawning a new thread for every job.
+
+  Create a simple thread pool with the following type signature:
+```
+
 
 ## Maintenace notes
 
 Keep the project summary (the `**Task**`, `**Goals**`, etc. text) synced between
 plan.md and the project description.
 
+New documentation files that are not part of a project or building-blocks, and
+not part of standard top-level project files go in `docs/` to keep the GitHub
+directory listing clean, and keep the rendered README above "the fold".
+
+Miscellaneous files that are not part of the user-visible projcet live in
+`docs/etc`.

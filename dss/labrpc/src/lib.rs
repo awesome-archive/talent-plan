@@ -218,7 +218,7 @@ impl Client {
             hooks: self.hooks.clone(),
         };
 
-        // Sends requets and waits responses.
+        // Sends requests and waits responses.
         if self.sender.unbounded_send(rpc).is_err() {
             return Box::new(future::result(Err(Error::Stopped)));
         }
@@ -360,7 +360,7 @@ impl Network {
         debug!(
             "client {} is {}",
             client_name,
-            if enabled { "enabled" } else { "disbaled" }
+            if enabled { "enabled" } else { "disabled" }
         );
         let mut eps = self.core.endpoints.lock().unwrap();
         eps.enabled.insert(client_name.to_owned(), enabled);
@@ -422,65 +422,67 @@ impl Network {
             server,
         } = end_info;
 
-        if enabled && server.is_some() {
-            let server = server.unwrap();
-            let short_delay = if !reliable {
-                // short delay
-                let ms = random.gen::<u64>() % 27;
-                Some(Delay::new(time::Duration::from_millis(ms)))
-            } else {
-                None
-            };
+        match (enabled, server) {
+            (true, Some(server)) => {
+                let short_delay = if !reliable {
+                    // short delay
+                    let ms = random.gen::<u64>() % 27;
+                    Some(Delay::new(time::Duration::from_millis(ms)))
+                } else {
+                    None
+                };
 
-            if !reliable && (random.gen::<u64>() % 1000) < 100 {
-                // drop the request, return as if timeout
-                return ProcessRpc {
-                    state: Some(ProcessState::Timeout {
-                        delay: short_delay.unwrap(),
+                if !reliable && (random.gen::<u64>() % 1000) < 100 {
+                    // drop the request, return as if timeout
+                    return ProcessRpc {
+                        state: Some(ProcessState::Timeout {
+                            delay: short_delay.unwrap(),
+                        }),
+                        rpc,
+                        network,
+                        server: None,
+                    };
+                }
+
+                let drop_reply = !reliable && random.gen::<u64>() % 1000 < 100;
+                let long_reordering = if long_reordering && random.gen_range(0, 900) < 600i32 {
+                    // delay the response for a while
+                    let upper_bound: u64 = 1 + random.gen_range(0, 2000);
+                    Some(200 + random.gen_range(0, upper_bound))
+                } else {
+                    None
+                };
+                ProcessRpc {
+                    state: Some(ProcessState::Dispatch {
+                        delay: short_delay,
+                        drop_reply,
+                        long_reordering,
                     }),
                     rpc,
                     network,
-                    server: None,
+                    server: Some(server),
+                }
+            }
+            _ => {
+                // simulate no reply and eventual timeout.
+                let ms = if self.core.long_delays.load(Ordering::Acquire) {
+                    // let Raft tests check that leader doesn't send
+                    // RPCs synchronously.
+                    random.gen::<u64>() % 7000
+                } else {
+                    // many kv tests require the client to try each
+                    // server in fairly rapid succession.
+                    random.gen::<u64>() % 100
                 };
-            }
 
-            let drop_reply = !reliable && random.gen::<u64>() % 1000 < 100;
-            let long_reordering = if long_reordering && random.gen_range(0, 900) < 600i32 {
-                // delay the response for a while
-                let upper_bound: u64 = 1 + random.gen_range(0, 2000);
-                Some(200 + random.gen_range(0, upper_bound))
-            } else {
-                None
-            };
-            ProcessRpc {
-                state: Some(ProcessState::Dispatch {
-                    delay: short_delay,
-                    drop_reply,
-                    long_reordering,
-                }),
-                rpc,
-                network,
-                server: Some(server),
-            }
-        } else {
-            // simulate no reply and eventual timeout.
-            let ms = if self.core.long_delays.load(Ordering::Acquire) {
-                // let Raft tests check that leader doesn't send
-                // RPCs synchronously.
-                random.gen::<u64>() % 7000
-            } else {
-                // many kv tests require the client to try each
-                // server in fairly rapid succession.
-                random.gen::<u64>() % 100
-            };
-
-            debug!("{:?} delay {}ms then timeout", rpc, ms);
-            let delay = Delay::new(time::Duration::from_millis(ms));
-            ProcessRpc {
-                state: Some(ProcessState::Timeout { delay }),
-                rpc,
-                network,
-                server: None,
+                debug!("{:?} delay {}ms then timeout", rpc, ms);
+                let delay = Delay::new(time::Duration::from_millis(ms));
+                ProcessRpc {
+                    state: Some(ProcessState::Timeout { delay }),
+                    rpc,
+                    network,
+                    server: None,
+                }
             }
         }
     }
@@ -574,7 +576,7 @@ impl Future for ProcessRpc {
 
     fn poll(&mut self) -> Poll<Vec<u8>, Error> {
         let res = loop {
-            let mut next;
+            let next;
             debug!("polling {:?}", self);
             match self
                 .state
@@ -622,7 +624,10 @@ impl Future for ProcessRpc {
                             // DeleteServer() before superseding the Persister.
                             let server = self.server.as_ref().unwrap();
                             let res = server.dispatch(fq_name, &req).select(ServerDead {
-                                interval: Interval::new(time::Duration::from_millis(100)),
+                                interval: Interval::new_at(
+                                    time::Instant::now(),
+                                    time::Duration::from_millis(100),
+                                ),
                                 net: self.network.clone(),
                                 client_name: self.rpc.client_name.clone(),
                                 server_name: server.core.name.clone(),
@@ -657,7 +662,15 @@ impl Future for ProcessRpc {
                     long_reordering,
                 } => {
                     let resp = try_ready!(res.poll());
-                    if *drop_reply {
+                    let server = self.server.as_ref().unwrap();
+                    let is_server_dead = self.network.is_server_dead(
+                        &self.rpc.client_name,
+                        &server.core.name,
+                        server.core.id,
+                    );
+                    if is_server_dead {
+                        break Err(Error::Stopped);
+                    } else if *drop_reply {
                         //  drop the reply, return as if timeout.
                         break Err(Error::Timeout);
                     } else if let Some(reordering) = long_reordering {

@@ -1,7 +1,7 @@
 # PNA Rust Project 2: Log-structured file I/O
 
-**Task**: Create a persistent key/value store that can be accessed from the
-command line.
+**Task**: Create a _persistent_ key/value store that _can be accessed from the
+command line_.
 
 **Goals**:
 
@@ -15,12 +15,24 @@ command line.
 **Topics**: log-structured file I/O, bitcask, the `failure` crate, `Read` /
 `Write` traits, the `serde` crate.
 
+- [Introduction](#user-content-introduction)
+- [Terminology](#user-content-terminology)
+- [Project spec](#user-content-project-spec)
+- [Project setup](#user-content-project-setup)
+- [Part 1: Error handling](#user-content-part-1-error-handling)
+- [Part 2: How the log behaves](#user-content-part-2-how-the-log-behaves)
+- [Part 3: Writing to the log](#user-content-part-3-writing-to-the-log)
+- [Part 4: Reading from the log](#user-content-part-4-reading-from-the-log)
+- [Part 5: Storing log pointers in the index](#user-content-part-5-storing-log-pointers-in-the-index)
+- [Part 6: Stateless vs. stateful `KvStore`](#user-content-part-6-stateless-vs-stateful-kvstore)
+- [Part 7: Compacting the log](#user-content-part-7-compacting-the-log)
+
 
 ## Introduction
 
 In this project you will create a simple on-disk key/value store that can be
 modified and queried from the command line. It will use a simplification of the
-storage algorithm used by [bitcask], chosen for its combination if simplicity
+storage algorithm used by [bitcask], chosen for its combination of simplicity
 and effectiveness. You will start by maintaining a _log_ (sometimes called a
 ["write-ahead log"][wal] or "WAL") on disk of previous write commands that is
 evaluated on startup to re-create the state of the database in memory. Then you
@@ -46,16 +58,16 @@ TODO
 
 ## Terminology
 
-Some terminology we we will use in this course. It is the same as or inspired by
+Some terminology we will use in this course. It is the same as or inspired by
 [bitcask]. Different databases will have slightly different terminology.
 
 - _command_ - A request or the representation of a request made to the database.
-  These are issued on the command line or over the network. The have an
+  These are issued on the command line or over the network. They have an
   in-memory representation, a textual representation, and a machine-readable
   serialized representation.
 - _log_ - An on-disk sequence of commands, in the order originally received and
   executed. Our database's on-disk format is almost entirely made up of logs. It
-  will be simple, but also surprisingly effecient.
+  will be simple, but also surprisingly efficient.
 - _log pointer_ - A file offset into the log. Sometimes we'll just call this a
   "file offset".
 - _log compaction_ - As writes are issued to the database they sometimes
@@ -64,9 +76,9 @@ Some terminology we we will use in this course. It is the same as or inspired by
   in our database at least &mdash; is the process of reducing the size of the
   database by remove stale commands from the log.
 - _in-memory index_ (or _index_) - A map of keys to log pointers. When a read
-  request is issues, the in-memory index is searched for the appropriate log
-  pointer, and when it is found the value retrieved from the on-disk log. In our
-  key/value store, like in bitcask, the index for the _entire database_ is
+  request is issued, the in-memory index is searched for the appropriate log
+  pointer, and when it is found the value is retrieved from the on-disk log. In
+  our key/value store, like in bitcask, the index for the _entire database_ is
   stored in memory.
 - _index file_ - The on-disk representation of the in-memory index. Without this
   the log would need to be completely replayed to restore the state of the
@@ -109,7 +121,7 @@ methods:
 
 - `KvStore::get(&mut self, key: String) -> Result<Option<String>>`
 
-  Get the string value of the a string key.
+  Get the string value of a string key.
   If the key does not exist, return `None`.
   Return an error if the value is not read successfully.
 
@@ -117,6 +129,11 @@ methods:
 
   Remove a given key.
   Return an error if the key does not exist or is not removed successfully.
+
+- `KvStore::open(path: impl Into<PathBuf>) -> Result<KvStore>`
+
+  Open the KvStore at a given path.
+  Return the KvStore.
 
 When setting a key to a value, `kvs` writes the `set` command to disk in a
 sequential log, then stores the log pointer (file offset) of that command in the
@@ -141,7 +158,7 @@ until it is dropped.
 
 ## Project setup
 
-Continuing from your previous project, delete your privous `tests` directory and
+Continuing from your previous project, delete your previous `tests` directory and
 copy this project's `tests` directory into its place. Like the previous project,
 this project should contain a library and an executable, both named `kvs`.
 
@@ -155,7 +172,7 @@ tempfile = "3.0.7"
 walkdir = "2.2.7"
 ```
 
-As with the previous project, go ahead and write enough empty tor panicking
+As with the previous project, go ahead and write enough empty or panicking
 definitions to make the test cases build.
 
 _Do that now._
@@ -190,7 +207,7 @@ type, so that you don't need to type `Result<T, YourErrorType>` everywhere, but
 can simply type `Result<T>`. This is a common Rust pattern.
 
 Finally, import those types into your executable with `use` statements, and
-chainge `main`s function signature to return `Result<()>`. All functions in your
+change `main`s function signature to return `Result<()>`. All functions in your
 library that may fail will pass these `Results` back down the stack all the way
 to `main`, and then to the Rust runtime, which will print an error.
 
@@ -211,9 +228,9 @@ suite to compile (`cargo test --no-run`).
 
 _Note: Error-handling practices in Rust are still evolving. This course
 currently uses the [`failure`] crate to make defining error types easier. While
-`failure` has a good design, it's use [arguably not a best practice][nbp]. It
+`failure` has a good design, its use is [arguably not a best practice][nbp]. It
 may not continue to be viewed favorably by Rust experts. Future iterations
-of the course will likely not use `failure`. In the meantime, it is a fine, and
+of the course will likely not use `failure`. In the meantime, it is fine, and
 presents an opportunity to learn more of the history and nuance of Rust error
 handling._
 
@@ -245,7 +262,7 @@ This is the basic behavior of `kvs` with a log:
   - It then serializes that command to a `String`
   - It then appends the serialized command to a file containing the log
   - If that succeeds, it exits silently with error code 0
-  - If it fails, it exits by printing the error and return a non-zero error code
+  - If it fails, it exits by printing the error and returning a non-zero error code
 - "get"
   - The user invokes `kvs get mykey`
   - `kvs` reads the entire log, one command at a time, recording the 
@@ -273,11 +290,11 @@ The log is a record of the transactions committed to the database. By
 of the database.
 
 In this iteration you may store the value of the keys directly in memory (and
-thus never reading from the log after initial startup and log replay). In a
-future iteration you will store only "log pointers" (file offsets) into the log.
+thus never read from the log after initial startup and log replay). In a future
+iteration you will store only "log pointers" (file offsets) into the log.
 
 
-# Part 3: Writing to the log
+## Part 3: Writing to the log
 
 You will start by implementing the "set" flow. There are a number of steps here.
 Most of them are straightforward to implement and you can verify you've done so
@@ -302,7 +319,7 @@ Some of the APIs you will call may fail, and return a `Result` of some error typ
 Make sure that your calling functions return a `Result` of _your own_ error type,
 and that you convert between the two with `?`.
 
-It is similar to implement the "rm" command, but you should additionally
+It is similar to implementing the "rm" command, but you should additionally
 check if the key exists before writing the command to the log. As we have two
 different commands that must be distinguished, you may use variants of a single
 enum type to represent each command. `serde` just works perfectly with enums.
@@ -310,7 +327,7 @@ enum type to represent each command. `serde` just works perfectly with enums.
 You may implement the "set" and "rm" commands now, focusing on the `set` / `rm`
 test cases, or you can proceed to the next section to read about the "get"
 command. It may help to keep both in mind, or to implement them both
-simultaniously. It is your choice.
+simultaneously. It is your choice.
 
 
 ## Part 4: Reading from the log
@@ -322,7 +339,7 @@ and value in the memory. Then read from the memory.
 
 Should you read all records in the log into memory at once and then replay
 them into your map type; or should you read them one at a time while
-replaying the into your map? Should you read into a buffer before deserializing
+replaying them into your map? Should you read into a buffer before deserializing
 or deserialize from a file stream? Think about the memory usage of your approach.
 Think about the way reading from I/O streams interacts with the kernel.
 
@@ -346,7 +363,7 @@ _Implement "get" now_.
 
 ## Part 5: Storing log pointers in the index
 
-At this point most, if not all, of the test suite should pass. The changes
+At this point most, if not all (besides the compaction test), other test suite should all pass. The changes
 introduced in the next steps are simple optimizations, necessary for fast
 performance and reduced storage. As you implement them, pay attention to what
 exactly they are optimizing for.
@@ -414,9 +431,9 @@ good heuristic to rebuild the log? always rebuild the entire log? -->
 _How_ you re-build the log is up to you. Consider questions like: what is the
 naive solution? How much memory do you need? What is the minimum amount of
 copying necessary to compact the log? Can the compaction be done in-place? How
-do you maintain data-integrity of compaction fails?
+do you maintain data-integrity if compaction fails?
 
-So for we've been refering to "the log", but in actuallity it is common for a
+So far we've been refering to "the log", but in actuallity it is common for a
 database to store many logs, in different files. You may find it easier to
 compact the log if you split your log across files.
 

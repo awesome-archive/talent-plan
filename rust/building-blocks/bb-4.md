@@ -36,9 +36,10 @@ Read all the readings and perform all the exercises. Also watch the video.
   exercise from the [rustlings] project. It is small enough that it can be
   completed on [play.rust-lang.org].
 
-- **Exercise: Write a thread pool**. A [thread pool] runs jobs (functions) on a
-  set of reusable threads, which can be more efficient than spawning a new
-  thread for every job.
+- **Exercise: Write a thread pool**.
+
+  A [thread pool] runs jobs (functions) on a set of reusable threads, which can
+  be more efficient than spawning a new thread for every job.
 
   Create a simple thread pool with the following type signature:
 
@@ -56,7 +57,24 @@ Read all the readings and perform all the exercises. Also watch the video.
 
   The [`threadpool`][tp1] crate and Rayon's [`ThreadPool`][tp2] may provide inspiration.
 
+- **[Reading: Lock-free vs wait-free concurrency][lf]**. It seems like everybody
+  wants their code to be "lock-free". What's that mean?
 
+<!--
+
+TODO
+
+overview of concurrent data structures
+code reordering
+
+https://en.wikipedia.org/wiki/Concurrent_data_structure
+https://preshing.com/20120625/memory-ordering-at-compile-time/
+https://www.cl.cam.ac.uk/~jp622/the_problem_of_programming_language_concurrency_semantics.pdf
+concurrent maps https://gitlab.nebulanet.cc/xacrimon/rs-hm-bench
+
+-->
+
+[lf]: https://rethinkdb.com/blog/lock-free-vs-wait-free-concurrency/
 [play.rust-lang.org]: https://play.rust-lang.org/
 [tp1]: https://docs.rs/threadpool/1.7.1/threadpool/struct.ThreadPool.html
 [tp2]: https://docs.rs/rayon/1.0.3/rayon/struct.ThreadPool.html

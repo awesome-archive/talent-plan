@@ -6,7 +6,7 @@ Over a series of projects, you will build a single networked, multithreaded, and
 asynchronous Rust application. Creating this application, a [key-value
 database][kv], will provide opportunities to exercise the best of the crate
 ecosystem, a variety of concurrent data types, the world of async Rust,
-interesting langauge features, and important Rust tools. In between projects are
+interesting language features, and important Rust tools. In between projects are
 small lessons and exercises on the subjects necessary to complete the next
 project.
 
@@ -44,7 +44,7 @@ on your own and submit pull requests. See [CONTRIBUTING.md] for details.<!-- See
 
 ## The goal of this course
 
-The goal of this course is to teach new Rust programmers how build real-world
+The goal of this course is to teach new Rust programmers how to build real-world
 [systems programs][sp], with all the desirable Rust characteristics, including
 high-performance, reliability, and easy concurrency; and to do so using the best
 practices that might not be evident to newcomers.
@@ -122,13 +122,17 @@ See [CONTRIBUTING.md].
 
 ## License
 
-[CC-BY 4.0](https://opendefinition.org/licenses/cc-by/)
+All text and code for this course is dual licensed [CC-BY 4.0] and [MIT]. You
+may freely reuse any material here under the terms of either or both, at your
+discretion.
 
 
 <!-- links -->
 
 [CONTRIBUTING.md]: CONTRIBUTING.md
-[Deep Dive TiKV]: https://tikv.org/deep-dive/
+[CC-BY 4.0]: https://opendefinition.org/licenses/cc-by/
+[MIT]: https://opensource.org/licenses/MIT
+[Deep Dive TiKV]: https://tikv.org/docs/deep-dive/introduction/
 [Distributed Systems in Rust]: https://github.com/pingcap/talent-plan/tree/master/dss
 [NewSQL]: https://en.wikipedia.org/wiki/NewSQL
 [NoSQL]: https://www.thoughtworks.com/insights/blog/nosql-databases-overview
@@ -149,14 +153,14 @@ See [CONTRIBUTING.md].
 [git]: https://git-scm.com/
 [kv]: https://en.wikipedia.org/wiki/Key-value_database
 [parallel programming]: todo
-[plan]: lesson-plan.md
-[post-project surveys]: lesson-plan.md#user-content-making-pna-rust-better
-[pre]: prerequisites.md
+[plan]: ./docs/lesson-plan.md
+[post-project surveys]: ./docs/lesson-plan.md#user-content-making-pna-rust-better
+[pre]: ./docs/prerequisites.md
 [programming a guessing game]: https://doc.rust-lang.org/stable/book/ch02-00-guessing-game-tutorial.html
 [rustfmt]: https://github.com/rust-lang/rustfmt/
 [serde]: https://github.com/serde-rs/serde
 [series of courses]: https://github.com/pingcap/talent-plan/
 [sp]: https://en.wikipedia.org/wiki/System_programming
-[the roadmap]: roadmap.md
+[the roadmap]: ./docs/roadmap.md
 [tokio]: https://github.com/tokio-rs/tokio
 [Rust]: https://www.rust-lang.org/

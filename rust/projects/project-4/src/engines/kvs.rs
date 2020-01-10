@@ -17,12 +17,6 @@ use crate::{KvsError, Result};
 
 const COMPACTION_THRESHOLD: u64 = 1024 * 1024;
 
-// FIXME: This implementation uses a lock-free SkipMap but only writes to it
-// while holding a lock. It does not look to be more efficient (probably less)
-// than simply protecting the type with a reader-writer lock.
-//
-// https://github.com/pingcap/talent-plan/issues/176
-
 /// The `KvStore` stores string key/value pairs.
 ///
 /// Key/value pairs are persisted to disk in log files. Log files are named after
@@ -438,7 +432,9 @@ impl<R: Read + Seek> BufReaderWithPos<R> {
 
 impl<R: Read + Seek> Read for BufReaderWithPos<R> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.reader.read(buf)
+        let len = self.reader.read(buf)?;
+        self.pos += len as u64;
+        Ok(len)
     }
 }
 
